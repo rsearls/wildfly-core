@@ -104,6 +104,12 @@ rem Add -server to the JVM options, if supported
 if not errorlevel == 1 (
   set "PROCESS_CONTROLLER_JAVA_OPTS=%PROCESS_CONTROLLER_JAVA_OPTS% -server"
   set "HOST_CONTROLLER_JAVA_OPTS=%HOST_CONTROLLER_JAVA_OPTS% -server"
+) else (
+    "%JAVA%" -server -version 2>&1 | findstr /I openJDK > nul
+    if not errorlevel == 1 (
+      set "PROCESS_CONTROLLER_JAVA_OPTS=%PROCESS_CONTROLLER_JAVA_OPTS% -server"
+      set "HOST_CONTROLLER_JAVA_OPTS=%HOST_CONTROLLER_JAVA_OPTS% -server"
+    )
 )
 
 rem Find run.jar, or we can't continue
