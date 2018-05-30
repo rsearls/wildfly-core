@@ -260,6 +260,44 @@ Function Start-WildFly-Process {
 	Env-Clean-Up
 }
 
+# Check if can set option to use HotSpot VM
+Function Set-Java-HotSpot-Option ($javaOpts) {
+   if ( -Not ($javaOpts -match "[\s*]-server[\s*]") ) {
+
+      # Check user requested JDK 'data model'
+      $JVM_OPTVERSION='-version'
+      if ($JAVA_OPTS -match "[\s*]-d64[\s*]") {
+         $JVM_OPTVERSION='-d64 -version'
+      } elseif ($JAVA_OPTS -match "[\s*]-d32[\s*]") {
+         $JVM_OPTVERSION='-d32 -version'
+      }
+
+      # exec java cmd to get version
+      $lines = & $JAVA  $JVM_OPTVERSION  2>&1
+
+      foreach ($str in $lines) {
+         # Check if data model is supported by JDK
+         if ($str -match "^Error:") {
+            Write-Host $lines
+            break
+         } else {
+            # Identify HotSpot impl
+            if ($str -match 'HotSpot') {
+               $has_hotspot = 'true'
+            }elseif ($str -match 'OpenJDK') {
+               $has_openjdk = 'true'
+            }
+
+            if ( $has_hotspot -eq 'true' -or $has_openjdk -eq 'true') {
+               $javaOpts="-server $javaOpts"
+               break
+            }
+         }
+      }
+   }
+   return $javaOpts
+}
+
 Function Set-Global-Variables {
 PARAM(
 [Parameter(Mandatory=$true)]

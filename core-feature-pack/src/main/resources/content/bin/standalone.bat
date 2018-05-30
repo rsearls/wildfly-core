@@ -42,6 +42,7 @@ if not errorlevel == 1 (
 )
 setlocal DisableDelayedExpansion
 
+set outParam=
 rem Read command-line args, the ~ removes the quotes from the parameter
 :READ-ARGS
 if "%~1" == "" (
@@ -50,11 +51,14 @@ if "%~1" == "" (
    goto READ-DEBUG-PORT
 ) else if "%~1" == "-secmgr" (
    set SECMGR=true
+) else (
+   set outParam=%outParam% "%~1"
 )
 shift
 goto READ-ARGS
 
 :READ-DEBUG-PORT
+
 set "DEBUG_MODE=true"
 set DEBUG_ARG="%2"
 if not %DEBUG_ARG% == "" (
@@ -67,6 +71,7 @@ if not %DEBUG_ARG% == "" (
 )
 
 :MAIN
+set "SERVER_OPTS=%outParam%"
 rem $Id$
 )
 
@@ -142,17 +147,43 @@ if "x%JAVA_HOME%" == "x" (
   )
 )
 
+setlocal EnableDelayedExpansion
 if not "%PRESERVE_JAVA_OPTS%" == "true" (
-  rem Add -client to the JVM options, if supported (32 bit VM), and not overriden
-  echo "%JAVA_OPTS%" | findstr /I \-server > nul
-  if errorlevel == 1 (
-    "%JAVA%" -client -version 2>&1 | findstr /I /C:"Client VM" > nul
-    if not errorlevel == 1 (
-      set "JAVA_OPTS=-client %JAVA_OPTS%"
+  rem Add -server to the JVM options, if supported by JDK
+    set JVM_OPTVERSION="-version"
+    echo "%JAVA_OPTS%" | findstr /I \-d64 > nul
+    if errorlevel == 0 (
+        set JVM_OPTVERSION="-d64 -version"
+        echo "%JAVA%" "%JVM_OPTVERSION%" 2>&1 | findstr /I /C:"Unrecognized option" > nul
+         if errorlevel == 0 (
+                set JVM_OPTVERSION="-version"
+          )
+    ) else (
+        echo "%JAVA_OPTS%" | findstr /I \-d32 > nul
+        if errorlevel == 0 (
+            set JVM_OPTVERSION="-d32 -version"
+            echo "%JAVA%" "%JVM_OPTVERSION%" 2>&1 | findstr /I /C:"Unrecognized option" > nul
+             if errorlevel == 0 (
+                    set JVM_OPTVERSION="-version"
+              )
+        )
     )
-  )
-)
 
+    echo "%JAVA_OPTS%" | findstr /I \-server > nul
+    if errorlevel == 1 (
+
+      echo "%JAVA%" "%JVM_OPTVERSION%" 2>&1 | findstr /I /C:"HotSpot" > nul
+      if errorlevel == 0 (
+        set JAVA_OPTS="-server %JAVA_OPTS%"
+      ) else (
+        echo "%JAVA%" "%JVM_OPTVERSION%" 2>&1 | findstr /I /C:"openJDK" > nul
+        if errorlevel == 0 (
+            set JAVA_OPTS="-server %JAVA_OPTS%"
+        )
+       )
+    )
+)
+setlocal DisableDelayedExpansion
 
 rem Find jboss-modules.jar, or we can't continue
 if exist "%JBOSS_HOME%\jboss-modules.jar" (
