@@ -444,7 +444,7 @@ class DomainDefinition extends SimpleResourceDefinition {
                 }
                 // rls debug
                 ROOT_LOGGER.debug("## DomainDefinition.outflow outflowIdentities cnt: "
-                        + outflowIdentities == null ? "null" : outflowIdentities.length );
+                        + (outflowIdentities == null ? "null" : outflowIdentities.length));
                 if (outflowIdentities != null) {
                     for (int i=0; i < outflowIdentities.length; i++) {
                         SecurityIdentity si = outflowIdentities[i];
